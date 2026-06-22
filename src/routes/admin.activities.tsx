@@ -399,7 +399,7 @@ function QrModal({ activity, onClose }: { activity: Activity; onClose: () => voi
   }, [activity.id]);
 
   const qrUrl = qr
-    ? `${typeof window !== "undefined" ? window.location.origin : ""}/scan?code=${encodeURIComponent(qr)}`
+    ? `https://nexus-points.lovable.app/scan?code=${encodeURIComponent(qr)}`
     : null;
 
   useEffect(() => {
