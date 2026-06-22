@@ -7,7 +7,12 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
+type AuthSearch = { next?: string };
+
 export const Route = createFileRoute("/auth")({
+  validateSearch: (s: Record<string, unknown>): AuthSearch => ({
+    next: typeof s.next === "string" ? s.next : undefined,
+  }),
   head: () => ({
     meta: [{ title: "Sign in — SkillBoard Activities" }],
   }),
@@ -16,6 +21,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const { user, role, loading } = useAuth();
+  const { next } = Route.useSearch();
   const navigate = useNavigate();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
@@ -26,9 +32,23 @@ function AuthPage() {
 
   useEffect(() => {
     if (!loading && user && role) {
+      // Prefer explicit ?next=, then any pending scan code from sessionStorage
+      let target = next;
+      if (!target) {
+        try {
+          const code = sessionStorage.getItem("pending_scan_code");
+          if (code) target = `/scan?code=${encodeURIComponent(code)}`;
+        } catch {
+          /* ignore */
+        }
+      }
+      if (target) {
+        window.location.replace(target);
+        return;
+      }
       navigate({ to: role === "admin" ? "/admin" : "/app" });
     }
-  }, [user, role, loading, navigate]);
+  }, [user, role, loading, navigate, next]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

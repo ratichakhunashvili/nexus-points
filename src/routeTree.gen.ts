@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ScanRouteImport } from './routes/scan'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -26,6 +27,11 @@ import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as AdminActivitiesRouteImport } from './routes/admin.activities'
 import { Route as ApiPublicSeedDemoRouteImport } from './routes/api/public/seed-demo'
 
+const ScanRoute = ScanRouteImport.update({
+  id: '/scan',
+  path: '/scan',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -112,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/scan': typeof ScanRoute
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -128,6 +135,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/scan': typeof ScanRoute
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/scan': typeof ScanRoute
   '/admin/activities': typeof AdminActivitiesRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -167,6 +176,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/app'
     | '/auth'
+    | '/scan'
     | '/admin/activities'
     | '/admin/analytics'
     | '/admin/reports'
@@ -183,6 +193,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/scan'
     | '/admin/activities'
     | '/admin/analytics'
     | '/admin/reports'
@@ -201,6 +212,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/app'
     | '/auth'
+    | '/scan'
     | '/admin/activities'
     | '/admin/analytics'
     | '/admin/reports'
@@ -220,11 +232,19 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ScanRoute: typeof ScanRoute
   ApiPublicSeedDemoRoute: typeof ApiPublicSeedDemoRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/scan': {
+      id: '/scan'
+      path: '/scan'
+      fullPath: '/scan'
+      preLoaderRoute: typeof ScanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -383,6 +403,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRoute,
+  ScanRoute: ScanRoute,
   ApiPublicSeedDemoRoute: ApiPublicSeedDemoRoute,
 }
 export const routeTree = rootRouteImport
