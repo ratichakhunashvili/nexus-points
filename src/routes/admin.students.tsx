@@ -4,7 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader } from "@/components/loader";
 import { toast } from "sonner";
-import { Gift, Minus, X } from "lucide-react";
+import { Gift, Minus, Trash2, X } from "lucide-react";
 
 export const Route = createFileRoute("/admin/students")({
   component: StudentsPage,
