@@ -14,10 +14,14 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AppScanRouteImport } from './routes/app.scan'
 import { Route as AppLeaderboardRouteImport } from './routes/app.leaderboard'
 import { Route as AppHistoryRouteImport } from './routes/app.history'
 import { Route as AppAchievementsRouteImport } from './routes/app.achievements'
+import { Route as AdminStudentsRouteImport } from './routes/admin.students'
+import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
+import { Route as AdminActivitiesRouteImport } from './routes/admin.activities'
 import { Route as ApiPublicSeedDemoRouteImport } from './routes/api/public/seed-demo'
 
 const AuthRoute = AuthRouteImport.update({
@@ -45,6 +49,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AppScanRoute = AppScanRouteImport.update({
   id: '/scan',
   path: '/scan',
@@ -65,6 +74,21 @@ const AppAchievementsRoute = AppAchievementsRouteImport.update({
   path: '/achievements',
   getParentRoute: () => AppRoute,
 } as any)
+const AdminStudentsRoute = AdminStudentsRouteImport.update({
+  id: '/students',
+  path: '/students',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminActivitiesRoute = AdminActivitiesRouteImport.update({
+  id: '/activities',
+  path: '/activities',
+  getParentRoute: () => AdminRoute,
+} as any)
 const ApiPublicSeedDemoRoute = ApiPublicSeedDemoRouteImport.update({
   id: '/api/public/seed-demo',
   path: '/api/public/seed-demo',
@@ -73,37 +97,48 @@ const ApiPublicSeedDemoRoute = ApiPublicSeedDemoRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/admin/activities': typeof AdminActivitiesRoute
+  '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/students': typeof AdminStudentsRoute
   '/app/achievements': typeof AppAchievementsRoute
   '/app/history': typeof AppHistoryRoute
   '/app/leaderboard': typeof AppLeaderboardRoute
   '/app/scan': typeof AppScanRoute
+  '/admin/': typeof AdminIndexRoute
   '/app/': typeof AppIndexRoute
   '/api/public/seed-demo': typeof ApiPublicSeedDemoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/admin/activities': typeof AdminActivitiesRoute
+  '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/students': typeof AdminStudentsRoute
   '/app/achievements': typeof AppAchievementsRoute
   '/app/history': typeof AppHistoryRoute
   '/app/leaderboard': typeof AppLeaderboardRoute
   '/app/scan': typeof AppScanRoute
+  '/admin': typeof AdminIndexRoute
   '/app': typeof AppIndexRoute
   '/api/public/seed-demo': typeof ApiPublicSeedDemoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/admin/activities': typeof AdminActivitiesRoute
+  '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/students': typeof AdminStudentsRoute
   '/app/achievements': typeof AppAchievementsRoute
   '/app/history': typeof AppHistoryRoute
   '/app/leaderboard': typeof AppLeaderboardRoute
   '/app/scan': typeof AppScanRoute
+  '/admin/': typeof AdminIndexRoute
   '/app/': typeof AppIndexRoute
   '/api/public/seed-demo': typeof ApiPublicSeedDemoRoute
 }
@@ -114,21 +149,28 @@ export interface FileRouteTypes {
     | '/admin'
     | '/app'
     | '/auth'
+    | '/admin/activities'
+    | '/admin/analytics'
+    | '/admin/students'
     | '/app/achievements'
     | '/app/history'
     | '/app/leaderboard'
     | '/app/scan'
+    | '/admin/'
     | '/app/'
     | '/api/public/seed-demo'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/admin'
     | '/auth'
+    | '/admin/activities'
+    | '/admin/analytics'
+    | '/admin/students'
     | '/app/achievements'
     | '/app/history'
     | '/app/leaderboard'
     | '/app/scan'
+    | '/admin'
     | '/app'
     | '/api/public/seed-demo'
   id:
@@ -137,17 +179,21 @@ export interface FileRouteTypes {
     | '/admin'
     | '/app'
     | '/auth'
+    | '/admin/activities'
+    | '/admin/analytics'
+    | '/admin/students'
     | '/app/achievements'
     | '/app/history'
     | '/app/leaderboard'
     | '/app/scan'
+    | '/admin/'
     | '/app/'
     | '/api/public/seed-demo'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRoute
+  AdminRoute: typeof AdminRouteWithChildren
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiPublicSeedDemoRoute: typeof ApiPublicSeedDemoRoute
@@ -190,6 +236,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/app/scan': {
       id: '/app/scan'
       path: '/scan'
@@ -218,6 +271,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAchievementsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/admin/students': {
+      id: '/admin/students'
+      path: '/students'
+      fullPath: '/admin/students'
+      preLoaderRoute: typeof AdminStudentsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/analytics': {
+      id: '/admin/analytics'
+      path: '/analytics'
+      fullPath: '/admin/analytics'
+      preLoaderRoute: typeof AdminAnalyticsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/activities': {
+      id: '/admin/activities'
+      path: '/activities'
+      fullPath: '/admin/activities'
+      preLoaderRoute: typeof AdminActivitiesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/api/public/seed-demo': {
       id: '/api/public/seed-demo'
       path: '/api/public/seed-demo'
@@ -227,6 +301,22 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AdminRouteChildren {
+  AdminActivitiesRoute: typeof AdminActivitiesRoute
+  AdminAnalyticsRoute: typeof AdminAnalyticsRoute
+  AdminStudentsRoute: typeof AdminStudentsRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminActivitiesRoute: AdminActivitiesRoute,
+  AdminAnalyticsRoute: AdminAnalyticsRoute,
+  AdminStudentsRoute: AdminStudentsRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface AppRouteChildren {
   AppAchievementsRoute: typeof AppAchievementsRoute
@@ -248,7 +338,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRoute,
+  AdminRoute: AdminRouteWithChildren,
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiPublicSeedDemoRoute: ApiPublicSeedDemoRoute,
