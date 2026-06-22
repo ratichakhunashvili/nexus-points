@@ -1,23 +1,44 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Html5Qrcode } from "html5-qrcode";
+import jsQR from "jsqr";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Camera, CameraOff, KeyRound, Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
-const CAMERA_CONFIG = { fps: 10, qrbox: { width: 260, height: 260 }, aspectRatio: 1 };
-
 export const Route = createFileRoute("/app/scan")({
   component: ScanPage,
 });
+
+function getCameraErrorMessage(err: unknown, inIframe: boolean) {
+  const name = (err as { name?: string })?.name ?? "";
+  const raw = err instanceof Error ? err.message : String(err || "");
+
+  if (name === "NotAllowedError" || /permission|notallowed|denied/i.test(raw)) {
+    return "Permission denied. Allow camera in your browser settings, then tap Start again.";
+  }
+  if (name === "NotFoundError" || /not found|no camera|notfound|devices? found/i.test(raw)) {
+    return "No camera was found on this device.";
+  }
+  if (name === "NotReadableError" || /in use|notreadable|could not start/i.test(raw)) {
+    return "Camera is busy. Close other apps/tabs using it and try again.";
+  }
+  if (inIframe) {
+    return "Camera is blocked in this preview. Open the published link on your phone.";
+  }
+  return raw || "Camera unavailable.";
+}
 
 function ScanPage() {
   const qc = useQueryClient();
   const [scanning, setScanning] = useState(false);
   const [manual, setManual] = useState("");
   const [busy, setBusy] = useState(false);
-  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const [starting, setStarting] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const frameRef = useRef<number | null>(null);
   const lastCodeRef = useRef<string>("");
 
   async function submitCode(code: string) {
@@ -45,10 +66,39 @@ function ScanPage() {
     }
   }
 
-  const inIframe = typeof window !== "undefined" && window.self !== window.top;
+  const inIframe = (() => {
+    try {
+      return typeof window !== "undefined" && window.self !== window.top;
+    } catch {
+      return true;
+    }
+  })();
+
+  function scanFrame() {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const stream = streamRef.current;
+    if (!video || !canvas || !stream) return;
+
+    const width = video.videoWidth;
+    const height = video.videoHeight;
+    if (width > 0 && height > 0 && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      if (ctx) {
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(video, 0, 0, width, height);
+        const image = ctx.getImageData(0, 0, width, height);
+        const result = jsQR(image.data, width, height, { inversionAttempts: "attemptBoth" });
+        if (result?.data) submitCode(result.data);
+      }
+    }
+
+    frameRef.current = requestAnimationFrame(scanFrame);
+  }
 
   async function startScanner() {
-    if (scannerRef.current) return;
+    if (streamRef.current || starting) return;
     if (typeof window === "undefined") return;
 
     if (!window.isSecureContext) {
@@ -60,79 +110,60 @@ function ScanPage() {
       return;
     }
 
-    // Show the camera container BEFORE creating the scanner so the div exists
-    // and is empty (html5-qrcode requires an empty target element).
+    setStarting(true);
     setScanning(true);
-    await new Promise<void>((r) => requestAnimationFrame(() => r()));
 
-    const target = document.getElementById("qr-reader");
-    if (target) target.innerHTML = "";
-
-    let inst: Html5Qrcode;
-    try {
-      inst = new Html5Qrcode("qr-reader", { verbose: false } as never);
-    } catch (e) {
-      toast.error("Could not initialize scanner.");
-      setScanning(false);
-      return;
-    }
-    scannerRef.current = inst;
-
-    const onDecoded = (decoded: string) => submitCode(decoded);
-    const onErr = () => {};
+    const streamRequest = navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: {
+        facingMode: { ideal: "environment" },
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+      },
+    });
 
     try {
+      let stream: MediaStream;
       try {
-        await inst.start({ facingMode: { ideal: "environment" } }, CAMERA_CONFIG, onDecoded, onErr);
+        stream = await streamRequest;
       } catch (firstErr) {
-        // Fallback: enumerate cameras and pick a back one (or any).
-        const cams = await Html5Qrcode.getCameras().catch(() => []);
-        if (!cams.length) throw firstErr;
-        const back = cams.find((c) => /back|rear|environment/i.test(c.label)) ?? cams[cams.length - 1];
-        await inst.start(back.id, CAMERA_CONFIG, onDecoded, onErr);
+        if (/overconstrained|constraint/i.test(String(firstErr))) {
+          stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
+        } else {
+          throw firstErr;
+        }
       }
+
+      const video = videoRef.current;
+      if (!video) throw new Error("Camera view is not ready. Try again.");
+
+      streamRef.current = stream;
+      video.srcObject = stream;
+      video.setAttribute("playsinline", "true");
+      video.muted = true;
+      await video.play();
+
+      frameRef.current = requestAnimationFrame(scanFrame);
     } catch (err) {
-      const name = (err as { name?: string })?.name ?? "";
-      const raw = err instanceof Error ? err.message : String(err || "");
-      let msg = "Camera unavailable.";
-      if (name === "NotAllowedError" || /permission|notallowed|denied/i.test(raw)) {
-        msg = "Permission denied. Allow camera in your browser settings, then tap Start again.";
-      } else if (name === "NotFoundError" || /not found|no camera|notfound|devices? found/i.test(raw)) {
-        msg = "No camera was found on this device.";
-      } else if (name === "NotReadableError" || /in use|notreadable|could not start/i.test(raw)) {
-        msg = "Camera is busy. Close other apps/tabs using it and try again.";
-      } else if (inIframe) {
-        msg = "Camera is blocked in this preview. Open the published link on your phone.";
-      } else if (raw) {
-        msg = raw;
-      }
-      toast.error(msg);
-      try {
-        await inst.clear();
-      } catch {
-        /* ignore */
-      }
-      scannerRef.current = null;
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+      toast.error(getCameraErrorMessage(err, inIframe));
       setScanning(false);
+    } finally {
+      setStarting(false);
     }
   }
 
-  async function stopScanner() {
-    const inst = scannerRef.current;
-    scannerRef.current = null;
-    if (inst) {
-      try {
-        await inst.stop();
-      } catch {
-        /* ignore */
-      }
-      try {
-        await inst.clear();
-      } catch {
-        /* ignore */
-      }
+  function stopScanner() {
+    if (frameRef.current !== null) {
+      cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
     }
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
     setScanning(false);
+    setStarting(false);
   }
 
   useEffect(() => {
@@ -158,16 +189,27 @@ function ScanPage() {
       </div>
 
       <div className="glass rounded-2xl p-4">
-        {scanning ? (
-          <div
-            id="qr-reader"
-            className="w-full rounded-xl overflow-hidden bg-black/40"
+        <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-black/40 flex items-center justify-center text-muted-foreground text-sm">
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            playsInline
+            className={`absolute inset-0 h-full w-full object-cover ${scanning ? "opacity-100" : "opacity-0"}`}
           />
-        ) : (
-          <div className="w-full aspect-square rounded-xl overflow-hidden bg-black/40 flex items-center justify-center text-muted-foreground text-sm">
-            Camera is off
+          <canvas ref={canvasRef} className="hidden" />
+          {!scanning ? (
+            <span>Camera is off</span>
+          ) : starting ? (
+            <span className="relative z-10 flex items-center gap-2 rounded-full bg-background/80 px-3 py-2 text-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Opening camera
+            </span>
+          ) : (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <div className="h-56 w-56 rounded-2xl border-2 border-primary/80 shadow-[0_0_0_999px_rgb(0_0_0_/_0.25)]" />
+            </div>
+          )}
           </div>
-        )}
         <div className="mt-4 flex gap-2">
           {!scanning ? (
             <button
@@ -179,9 +221,10 @@ function ScanPage() {
           ) : (
             <button
               onClick={stopScanner}
+              disabled={starting}
               className="flex-1 glass rounded-xl py-3 font-medium flex items-center justify-center gap-2"
             >
-              <CameraOff className="h-4 w-4" /> Stop
+              {starting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CameraOff className="h-4 w-4" />} Stop
             </button>
           )}
         </div>
