@@ -107,6 +107,36 @@ function StudentsPage() {
           }}
         />
       )}
+
+      {deleteFor && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => !deleteMut.isPending && setDeleteFor(null)}
+        >
+          <div onClick={(e) => e.stopPropagation()} className="glass rounded-3xl p-6 w-full max-w-sm">
+            <h2 className="text-lg font-semibold">Delete user?</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              This permanently removes <strong>{deleteFor.name}</strong>, their points, attendance, and achievements. They will need to register again to return.
+            </p>
+            <div className="flex gap-2 mt-5">
+              <button
+                onClick={() => setDeleteFor(null)}
+                disabled={deleteMut.isPending}
+                className="flex-1 glass rounded-xl py-2.5 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => deleteMut.mutate(deleteFor.id)}
+                disabled={deleteMut.isPending}
+                className="flex-1 rounded-xl py-2.5 text-sm font-medium bg-destructive text-destructive-foreground disabled:opacity-60"
+              >
+                {deleteMut.isPending ? "Deleting…" : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
