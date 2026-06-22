@@ -45,44 +45,67 @@ function ScanPage() {
     }
   }
 
+  const inIframe = typeof window !== "undefined" && window.self !== window.top;
+
   async function startScanner() {
+    if (scannerRef.current) return;
+    if (typeof window === "undefined") return;
+
     if (!window.isSecureContext) {
-      toast.error("Camera needs HTTPS. Open the published site or use 'Open in new tab'.");
+      toast.error("Camera requires HTTPS. Open the published link.");
       return;
     }
     if (!navigator.mediaDevices?.getUserMedia) {
-      toast.error("This browser doesn't expose camera APIs.");
+      toast.error("This browser does not support camera access.");
       return;
     }
-    if (scannerRef.current) return;
 
+    // Show the camera container BEFORE creating the scanner so the div exists
+    // and is empty (html5-qrcode requires an empty target element).
     setScanning(true);
-    const inst = new Html5Qrcode("qr-reader", { verbose: false });
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+
+    const target = document.getElementById("qr-reader");
+    if (target) target.innerHTML = "";
+
+    let inst: Html5Qrcode;
+    try {
+      inst = new Html5Qrcode("qr-reader", { verbose: false } as never);
+    } catch (e) {
+      toast.error("Could not initialize scanner.");
+      setScanning(false);
+      return;
+    }
     scannerRef.current = inst;
+
+    const onDecoded = (decoded: string) => submitCode(decoded);
+    const onErr = () => {};
 
     try {
       try {
-        await inst.start(
-          { facingMode: "environment" },
-          CAMERA_CONFIG,
-          (decoded) => submitCode(decoded),
-          () => {},
-        );
-      } catch {
-        // Fallback: pick first available camera by id (some browsers reject facingMode).
-        const cams = await Html5Qrcode.getCameras();
-        if (!cams.length) throw new Error("No cameras found");
+        await inst.start({ facingMode: { ideal: "environment" } }, CAMERA_CONFIG, onDecoded, onErr);
+      } catch (firstErr) {
+        // Fallback: enumerate cameras and pick a back one (or any).
+        const cams = await Html5Qrcode.getCameras().catch(() => []);
+        if (!cams.length) throw firstErr;
         const back = cams.find((c) => /back|rear|environment/i.test(c.label)) ?? cams[cams.length - 1];
-        await inst.start(back.id, CAMERA_CONFIG, (decoded) => submitCode(decoded), () => {});
+        await inst.start(back.id, CAMERA_CONFIG, onDecoded, onErr);
       }
     } catch (err) {
-      const name = (err as { name?: string })?.name;
+      const name = (err as { name?: string })?.name ?? "";
       const raw = err instanceof Error ? err.message : String(err || "");
-      let msg = raw || "Camera unavailable";
-      if (name === "NotAllowedError" || /permission|notallowed/i.test(raw)) msg = "Permission denied. Allow camera in your browser/site settings.";
-      else if (name === "NotFoundError" || /not found|no camera|notfound/i.test(raw)) msg = "No camera detected on this device.";
-      else if (name === "NotReadableError" || /in use|notreadable|could not start/i.test(raw)) msg = "Camera is in use by another app or browser tab.";
-      else if (window.self !== window.top) msg = "Camera is blocked inside this preview. Open the app in a new tab or use the published link on your phone.";
+      let msg = "Camera unavailable.";
+      if (name === "NotAllowedError" || /permission|notallowed|denied/i.test(raw)) {
+        msg = "Permission denied. Allow camera in your browser settings, then tap Start again.";
+      } else if (name === "NotFoundError" || /not found|no camera|notfound|devices? found/i.test(raw)) {
+        msg = "No camera was found on this device.";
+      } else if (name === "NotReadableError" || /in use|notreadable|could not start/i.test(raw)) {
+        msg = "Camera is busy. Close other apps/tabs using it and try again.";
+      } else if (inIframe) {
+        msg = "Camera is blocked in this preview. Open the published link on your phone.";
+      } else if (raw) {
+        msg = raw;
+      }
       toast.error(msg);
       try {
         await inst.clear();
@@ -95,14 +118,19 @@ function ScanPage() {
   }
 
   async function stopScanner() {
-    if (scannerRef.current) {
+    const inst = scannerRef.current;
+    scannerRef.current = null;
+    if (inst) {
       try {
-        await scannerRef.current.stop();
-        await scannerRef.current.clear();
+        await inst.stop();
       } catch {
         /* ignore */
       }
-      scannerRef.current = null;
+      try {
+        await inst.clear();
+      } catch {
+        /* ignore */
+      }
     }
     setScanning(false);
   }
@@ -121,17 +149,25 @@ function ScanPage() {
         <p className="text-muted-foreground text-sm">
           Point your camera at the activity's QR code to earn points.
         </p>
+        {inIframe && (
+          <p className="mt-2 text-xs text-amber-500">
+            Tip: camera access is often blocked inside the preview. Open the app
+            in a new tab or use the published link on your phone.
+          </p>
+        )}
       </div>
 
       <div className="glass rounded-2xl p-4">
-        <div
-          id="qr-reader"
-          className="w-full aspect-square rounded-xl overflow-hidden bg-black/40 flex items-center justify-center"
-        >
-          {!scanning && (
-            <div className="text-muted-foreground text-sm">Camera is off</div>
-          )}
-        </div>
+        {scanning ? (
+          <div
+            id="qr-reader"
+            className="w-full rounded-xl overflow-hidden bg-black/40"
+          />
+        ) : (
+          <div className="w-full aspect-square rounded-xl overflow-hidden bg-black/40 flex items-center justify-center text-muted-foreground text-sm">
+            Camera is off
+          </div>
+        )}
         <div className="mt-4 flex gap-2">
           {!scanning ? (
             <button
