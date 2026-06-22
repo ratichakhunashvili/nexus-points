@@ -120,27 +120,42 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_icon: string
           avatar_url: string | null
+          bio: string | null
           created_at: string
+          department: string | null
           email: string | null
           full_name: string
           id: string
+          phone: string | null
+          student_id: string | null
           total_points: number
         }
         Insert: {
+          avatar_icon?: string
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
+          department?: string | null
           email?: string | null
           full_name?: string
           id: string
+          phone?: string | null
+          student_id?: string | null
           total_points?: number
         }
         Update: {
+          avatar_icon?: string
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
+          department?: string | null
           email?: string | null
           full_name?: string
           id?: string
+          phone?: string | null
+          student_id?: string | null
           total_points?: number
         }
         Relationships: []
