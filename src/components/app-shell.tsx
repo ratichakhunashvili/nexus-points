@@ -1,8 +1,9 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LogOut, QrCode, Trophy, History, Award, LayoutDashboard, Users, BarChart3, CalendarPlus } from "lucide-react";
+import { LogOut, QrCode, Trophy, History, Award, LayoutDashboard, Users, BarChart3, CalendarPlus, UserCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import type { AppRole } from "@/hooks/use-auth";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const studentNav = [
   { to: "/app", label: "Overview", icon: LayoutDashboard },
@@ -10,6 +11,7 @@ const studentNav = [
   { to: "/app/leaderboard", label: "Leaderboard", icon: Trophy },
   { to: "/app/history", label: "History", icon: History },
   { to: "/app/achievements", label: "Achievements", icon: Award },
+  { to: "/app/profile", label: "Profile", icon: UserCircle2 },
 ];
 
 const adminNav = [
@@ -72,6 +74,12 @@ export function AppShell({
         </button>
       </aside>
       <main className="flex-1 p-4 md:p-8 min-w-0">
+        <div className="flex items-center justify-between mb-4 md:mb-6">
+          <div className="md:hidden text-lg font-bold text-gradient">SkillBoard</div>
+          <div className="ml-auto">
+            <ThemeToggle />
+          </div>
+        </div>
         {title && (
           <header className="mb-6">
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{title}</h1>

@@ -16,6 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AppScanRouteImport } from './routes/app.scan'
+import { Route as AppProfileRouteImport } from './routes/app.profile'
 import { Route as AppLeaderboardRouteImport } from './routes/app.leaderboard'
 import { Route as AppHistoryRouteImport } from './routes/app.history'
 import { Route as AppAchievementsRouteImport } from './routes/app.achievements'
@@ -57,6 +58,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
 const AppScanRoute = AppScanRouteImport.update({
   id: '/scan',
   path: '/scan',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProfileRoute = AppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => AppRoute,
 } as any)
 const AppLeaderboardRoute = AppLeaderboardRouteImport.update({
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/app/achievements': typeof AppAchievementsRoute
   '/app/history': typeof AppHistoryRoute
   '/app/leaderboard': typeof AppLeaderboardRoute
+  '/app/profile': typeof AppProfileRoute
   '/app/scan': typeof AppScanRoute
   '/admin/': typeof AdminIndexRoute
   '/app/': typeof AppIndexRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/app/achievements': typeof AppAchievementsRoute
   '/app/history': typeof AppHistoryRoute
   '/app/leaderboard': typeof AppLeaderboardRoute
+  '/app/profile': typeof AppProfileRoute
   '/app/scan': typeof AppScanRoute
   '/admin': typeof AdminIndexRoute
   '/app': typeof AppIndexRoute
@@ -137,6 +145,7 @@ export interface FileRoutesById {
   '/app/achievements': typeof AppAchievementsRoute
   '/app/history': typeof AppHistoryRoute
   '/app/leaderboard': typeof AppLeaderboardRoute
+  '/app/profile': typeof AppProfileRoute
   '/app/scan': typeof AppScanRoute
   '/admin/': typeof AdminIndexRoute
   '/app/': typeof AppIndexRoute
@@ -155,6 +164,7 @@ export interface FileRouteTypes {
     | '/app/achievements'
     | '/app/history'
     | '/app/leaderboard'
+    | '/app/profile'
     | '/app/scan'
     | '/admin/'
     | '/app/'
@@ -169,6 +179,7 @@ export interface FileRouteTypes {
     | '/app/achievements'
     | '/app/history'
     | '/app/leaderboard'
+    | '/app/profile'
     | '/app/scan'
     | '/admin'
     | '/app'
@@ -185,6 +196,7 @@ export interface FileRouteTypes {
     | '/app/achievements'
     | '/app/history'
     | '/app/leaderboard'
+    | '/app/profile'
     | '/app/scan'
     | '/admin/'
     | '/app/'
@@ -248,6 +260,13 @@ declare module '@tanstack/react-router' {
       path: '/scan'
       fullPath: '/app/scan'
       preLoaderRoute: typeof AppScanRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/profile': {
+      id: '/app/profile'
+      path: '/profile'
+      fullPath: '/app/profile'
+      preLoaderRoute: typeof AppProfileRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/leaderboard': {
@@ -322,6 +341,7 @@ interface AppRouteChildren {
   AppAchievementsRoute: typeof AppAchievementsRoute
   AppHistoryRoute: typeof AppHistoryRoute
   AppLeaderboardRoute: typeof AppLeaderboardRoute
+  AppProfileRoute: typeof AppProfileRoute
   AppScanRoute: typeof AppScanRoute
   AppIndexRoute: typeof AppIndexRoute
 }
@@ -330,6 +350,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAchievementsRoute: AppAchievementsRoute,
   AppHistoryRoute: AppHistoryRoute,
   AppLeaderboardRoute: AppLeaderboardRoute,
+  AppProfileRoute: AppProfileRoute,
   AppScanRoute: AppScanRoute,
   AppIndexRoute: AppIndexRoute,
 }
