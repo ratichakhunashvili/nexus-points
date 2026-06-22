@@ -89,20 +89,25 @@ function BonusModal({
   onDone: () => void;
 }) {
   const [points, setPoints] = useState(10);
+  const [direction, setDirection] = useState<"add" | "remove">("add");
   const [reason, setReason] = useState("");
+  const signed = direction === "add" ? Math.abs(points) : -Math.abs(points);
+
   const mut = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.rpc("award_bonus_points", {
         _student: student.id,
-        _points: points,
-        _reason: reason || "Bonus",
+        _points: signed,
+        _reason: reason || (direction === "add" ? "Bonus" : "Adjustment"),
       });
       if (error) throw error;
       const res = data as { ok: boolean; error?: string };
       if (!res.ok) throw new Error(res.error ?? "Failed");
     },
     onSuccess: () => {
-      toast.success(`Awarded +${points} pts to ${student.name}`);
+      const verb = direction === "add" ? "Awarded" : "Removed";
+      const sign = direction === "add" ? "+" : "−";
+      toast.success(`${verb} ${sign}${Math.abs(points)} pts ${direction === "add" ? "to" : "from"} ${student.name}`);
       onDone();
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
@@ -119,20 +124,39 @@ function BonusModal({
       >
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 p-1.5 rounded-lg hover:bg-white/10"
+          className="absolute top-3 right-3 p-1.5 rounded-lg hover:bg-accent"
         >
           <X className="h-4 w-4" />
         </button>
-        <h2 className="text-lg font-semibold">Award bonus points</h2>
-        <p className="text-sm text-muted-foreground mb-4">to {student.name}</p>
+        <h2 className="text-lg font-semibold">Adjust points</h2>
+        <p className="text-sm text-muted-foreground mb-4">for {student.name}</p>
+
+        <div className="flex gap-1 p-1 glass rounded-xl mb-4">
+          {(["add", "remove"] as const).map((d) => (
+            <button
+              key={d}
+              onClick={() => setDirection(d)}
+              className={`flex-1 py-1.5 text-xs rounded-lg transition ${
+                direction === d
+                  ? d === "add"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-destructive text-destructive-foreground"
+                  : "text-muted-foreground"
+              }`}
+            >
+              {d === "add" ? "Add points" : "Remove points"}
+            </button>
+          ))}
+        </div>
+
         <label className="block">
           <span className="text-xs text-muted-foreground">Points</span>
           <input
             type="number"
             min={1}
             value={points}
-            onChange={(e) => setPoints(Number(e.target.value))}
-            className="w-full mt-1 glass rounded-xl px-3 py-2 text-sm"
+            onChange={(e) => setPoints(Math.max(1, Number(e.target.value) || 0))}
+            className="w-full mt-1 glass rounded-xl px-3 py-2 text-sm bg-transparent"
           />
         </label>
         <label className="block mt-3">
@@ -140,17 +164,22 @@ function BonusModal({
           <input
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            className="w-full mt-1 glass rounded-xl px-3 py-2 text-sm"
+            className="w-full mt-1 glass rounded-xl px-3 py-2 text-sm bg-transparent"
           />
         </label>
         <button
           disabled={mut.isPending}
           onClick={() => mut.mutate()}
-          className="w-full mt-5 bg-primary text-primary-foreground rounded-xl py-2.5 font-medium glow disabled:opacity-60"
+          className={`w-full mt-5 rounded-xl py-2.5 font-medium glow disabled:opacity-60 ${
+            direction === "add"
+              ? "bg-primary text-primary-foreground"
+              : "bg-destructive text-destructive-foreground"
+          }`}
         >
-          Award
+          {direction === "add" ? `Add +${points}` : `Remove −${points}`}
         </button>
       </div>
     </div>
   );
 }
+

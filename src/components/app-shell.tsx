@@ -14,11 +14,14 @@ const studentNav = [
   { to: "/app/profile", label: "Profile", icon: UserCircle2 },
 ];
 
+import { Download } from "lucide-react";
+
 const adminNav = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { to: "/admin/activities", label: "Activities", icon: CalendarPlus },
   { to: "/admin/students", label: "Students", icon: Users },
   { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+  { to: "/admin/reports", label: "Reports", icon: Download },
 ];
 
 export function AppShell({
