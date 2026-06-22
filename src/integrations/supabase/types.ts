@@ -209,7 +209,30 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_profiles: {
+        Row: {
+          avatar_icon: string | null
+          avatar_url: string | null
+          full_name: string | null
+          id: string | null
+          total_points: number | null
+        }
+        Insert: {
+          avatar_icon?: string | null
+          avatar_url?: string | null
+          full_name?: string | null
+          id?: string | null
+          total_points?: number | null
+        }
+        Update: {
+          avatar_icon?: string | null
+          avatar_url?: string | null
+          full_name?: string | null
+          id?: string | null
+          total_points?: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       award_bonus_points: {
