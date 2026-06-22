@@ -35,7 +35,7 @@ function ActivitiesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("activities")
-        .select("*")
+        .select("id,name,description,event_date,start_time,end_time,points,max_scans_per_student,is_active")
         .order("event_date", { ascending: false });
       if (error) throw error;
       return data as Activity[];
