@@ -41,8 +41,19 @@ function ScanPage() {
   const frameRef = useRef<number | null>(null);
   const lastCodeRef = useRef<string>("");
 
-  async function submitCode(code: string) {
-    if (!code || busy) return;
+  async function submitCode(raw: string) {
+    if (!raw || busy) return;
+    // Accept both raw tokens and URL-encoded QR codes like /scan?code=TOKEN
+    let code = raw.trim();
+    try {
+      if (code.startsWith("http://") || code.startsWith("https://")) {
+        const u = new URL(code);
+        const fromQuery = u.searchParams.get("code");
+        if (fromQuery) code = fromQuery;
+      }
+    } catch {
+      /* ignore — use raw */
+    }
     if (code === lastCodeRef.current) return;
     lastCodeRef.current = code;
     setBusy(true);
