@@ -39,9 +39,7 @@ function ReportsPage() {
     try {
       let query = supabase
         .from("attendance")
-        .select(
-          "id, scanned_at, points_awarded, activities(name, event_date, points), profiles(full_name, email, student_id, department)",
-        )
+        .select("id, scanned_at, points_awarded, student_id, activities(name, event_date, points)")
         .order("scanned_at", { ascending: false });
 
       let label = "attendance";
@@ -71,26 +69,36 @@ function ReportsPage() {
         return;
       }
 
-      // Flatten for spreadsheet
-      type Row = (typeof rows)[number];
-      const flat = rows.map((r: Row) => ({
-        "Scanned At": new Date(r.scanned_at).toLocaleString(),
-        "Activity": r.activities?.name ?? "—",
-        "Event Date": r.activities?.event_date ?? "—",
-        "Student": r.profiles?.full_name ?? "—",
-        "Email": r.profiles?.email ?? "—",
-        "Student ID": r.profiles?.student_id ?? "",
-        "Department": r.profiles?.department ?? "",
-        "Points Awarded": r.points_awarded,
-      }));
+      // Fetch profile info for the students in this set
+      const studentIds = Array.from(new Set(rows.map((r) => r.student_id)));
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, full_name, email, student_id, department")
+        .in("id", studentIds);
+      const pMap = new Map((profs ?? []).map((p) => [p.id, p]));
 
-      // Per-student summary sheet
+      const flat = rows.map((r) => {
+        const p = pMap.get(r.student_id);
+        return {
+          "Scanned At": new Date(r.scanned_at).toLocaleString(),
+          "Activity": r.activities?.name ?? "—",
+          "Event Date": r.activities?.event_date ?? "—",
+          "Student": p?.full_name ?? "—",
+          "Email": p?.email ?? "—",
+          "Student ID": p?.student_id ?? "",
+          "Department": p?.department ?? "",
+          "Points Awarded": r.points_awarded,
+        };
+      });
+
+      // Per-student summary
       const summaryMap = new Map<string, { name: string; email: string; scans: number; points: number }>();
       for (const r of rows) {
-        const key = r.profiles?.email ?? "unknown";
+        const p = pMap.get(r.student_id);
+        const key = r.student_id;
         const cur = summaryMap.get(key) ?? {
-          name: r.profiles?.full_name ?? "—",
-          email: r.profiles?.email ?? "—",
+          name: p?.full_name ?? "—",
+          email: p?.email ?? "—",
           scans: 0,
           points: 0,
         };
