@@ -13,6 +13,22 @@ export const Route = createFileRoute("/admin/students")({
 function StudentsPage() {
   const qc = useQueryClient();
   const [modalFor, setModalFor] = useState<{ id: string; name: string; mode: "add" | "remove" } | null>(null);
+  const [deleteFor, setDeleteFor] = useState<{ id: string; name: string } | null>(null);
+
+  const deleteMut = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase.rpc("admin_delete_user", { _user_id: id });
+      if (error) throw error;
+      const res = data as { ok: boolean; error?: string };
+      if (!res.ok) throw new Error(res.error ?? "Failed");
+    },
+    onSuccess: () => {
+      toast.success(`Removed ${deleteFor?.name}`);
+      setDeleteFor(null);
+      qc.invalidateQueries({ queryKey: ["all-students"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["all-students"],
