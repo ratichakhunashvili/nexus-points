@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { Camera, CameraOff, KeyRound, Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
+const CAMERA_CONFIG = { fps: 10, qrbox: { width: 260, height: 260 }, aspectRatio: 1 };
+
 export const Route = createFileRoute("/app/scan")({
   component: ScanPage,
 });
@@ -52,35 +54,42 @@ function ScanPage() {
       toast.error("This browser doesn't expose camera APIs.");
       return;
     }
+    if (scannerRef.current) return;
+
     setScanning(true);
+    const inst = new Html5Qrcode("qr-reader", { verbose: false });
+    scannerRef.current = inst;
+
     try {
-      // Request permission with a direct user-gesture call first.
-      const probe = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" } },
-      });
-      probe.getTracks().forEach((t) => t.stop());
-
-      const inst = new Html5Qrcode("qr-reader", { verbose: false });
-      scannerRef.current = inst;
-
-      const config = { fps: 10, qrbox: { width: 240, height: 240 }, aspectRatio: 1 };
       try {
-        await inst.start({ facingMode: { ideal: "environment" } }, config,
-          (decoded) => submitCode(decoded), () => {});
+        await inst.start(
+          { facingMode: "environment" },
+          CAMERA_CONFIG,
+          (decoded) => submitCode(decoded),
+          () => {},
+        );
       } catch {
         // Fallback: pick first available camera by id (some browsers reject facingMode).
         const cams = await Html5Qrcode.getCameras();
         if (!cams.length) throw new Error("No cameras found");
         const back = cams.find((c) => /back|rear|environment/i.test(c.label)) ?? cams[cams.length - 1];
-        await inst.start(back.id, config, (decoded) => submitCode(decoded), () => {});
+        await inst.start(back.id, CAMERA_CONFIG, (decoded) => submitCode(decoded), () => {});
       }
     } catch (err) {
       const name = (err as { name?: string })?.name;
-      let msg = err instanceof Error ? err.message : "Camera unavailable";
-      if (name === "NotAllowedError") msg = "Permission denied. Allow camera in your browser/site settings.";
-      else if (name === "NotFoundError") msg = "No camera detected on this device.";
-      else if (name === "NotReadableError") msg = "Camera is in use by another app.";
+      const raw = err instanceof Error ? err.message : String(err || "");
+      let msg = raw || "Camera unavailable";
+      if (name === "NotAllowedError" || /permission|notallowed/i.test(raw)) msg = "Permission denied. Allow camera in your browser/site settings.";
+      else if (name === "NotFoundError" || /not found|no camera|notfound/i.test(raw)) msg = "No camera detected on this device.";
+      else if (name === "NotReadableError" || /in use|notreadable|could not start/i.test(raw)) msg = "Camera is in use by another app or browser tab.";
+      else if (window.self !== window.top) msg = "Camera is blocked inside this preview. Open the app in a new tab or use the published link on your phone.";
       toast.error(msg);
+      try {
+        await inst.clear();
+      } catch {
+        /* ignore */
+      }
+      scannerRef.current = null;
       setScanning(false);
     }
   }
