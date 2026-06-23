@@ -33,10 +33,17 @@ function StudentsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["all-students"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data: admins } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin");
+      const adminIds = (admins ?? []).map((r) => r.user_id);
+      let q = supabase
         .from("profiles")
         .select("id, full_name, email, total_points, created_at")
         .order("total_points", { ascending: false });
+      if (adminIds.length) q = q.not("id", "in", `(${adminIds.join(",")})`);
+      const { data } = await q;
       return data ?? [];
     },
   });

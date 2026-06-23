@@ -12,11 +12,25 @@ function AdminHome() {
   const { data, isLoading } = useQuery({
     queryKey: ["admin-home"],
     queryFn: async () => {
+      const { data: admins } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin");
+      const adminIds = (admins ?? []).map((r) => r.user_id);
+      const notInExpr = adminIds.length ? `(${adminIds.join(",")})` : null;
+
+      let studentsQ = supabase.from("profiles").select("id", { count: "exact", head: true });
+      let pointsQ = supabase.from("profiles").select("total_points");
+      if (notInExpr) {
+        studentsQ = studentsQ.not("id", "in", notInExpr);
+        pointsQ = pointsQ.not("id", "in", notInExpr);
+      }
+
       const [students, activities, attendance, totalPoints] = await Promise.all([
-        supabase.from("profiles").select("id", { count: "exact", head: true }),
+        studentsQ,
         supabase.from("activities").select("id", { count: "exact", head: true }),
         supabase.from("attendance").select("id", { count: "exact", head: true }),
-        supabase.from("profiles").select("total_points"),
+        pointsQ,
       ]);
       const total = (totalPoints.data ?? []).reduce(
         (a, b) => a + (b.total_points ?? 0),
