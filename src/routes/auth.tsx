@@ -77,22 +77,6 @@ function AuthPage() {
     }
   }
 
-  async function seedDemo() {
-    setSeeding(true);
-    try {
-      const res = await fetch("/api/public/seed-demo", { method: "POST" });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Seed failed");
-      toast.success("Demo accounts ready. Try admin@demo.test / demo1234");
-      setEmail("admin@demo.test");
-      setPassword("demo1234");
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Seed failed";
-      toast.error(message);
-    } finally {
-      setSeeding(false);
-    }
-  }
 
   async function oauth(provider: "google" | "apple") {
     try {
