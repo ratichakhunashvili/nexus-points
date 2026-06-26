@@ -2,10 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
+import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader } from "@/components/loader";
 import { toast } from "sonner";
-import { Plus, QrCode, Trash2, Power, X, Download, Users, UserMinus } from "lucide-react";
+import { Plus, QrCode, Trash2, Power, X, Download, Users, UserMinus, ClipboardList } from "lucide-react";
 
 export const Route = createFileRoute("/admin/activities")({
   component: ActivitiesPage,
@@ -29,6 +30,7 @@ function ActivitiesPage() {
   const [editing, setEditing] = useState<Activity | null>(null);
   const [qrFor, setQrFor] = useState<Activity | null>(null);
   const [logFor, setLogFor] = useState<Activity | null>(null);
+  const [regsFor, setRegsFor] = useState<Activity | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["activities"],
@@ -123,6 +125,12 @@ function ActivitiesPage() {
                   <Users className="h-3 w-3" /> Log
                 </button>
                 <button
+                  onClick={() => setRegsFor(a)}
+                  className="glass rounded-lg px-3 py-1.5 text-xs flex items-center gap-1 hover:bg-white/10"
+                >
+                  <ClipboardList className="h-3 w-3" /> Registrations
+                </button>
+                <button
                   onClick={() => {
                     setEditing(a);
                     setShowForm(true);
@@ -163,7 +171,106 @@ function ActivitiesPage() {
       )}
       {qrFor && <QrModal activity={qrFor} onClose={() => setQrFor(null)} />}
       {logFor && <LogModal activity={logFor} onClose={() => setLogFor(null)} />}
+      {regsFor && <RegistrationsModal activity={regsFor} onClose={() => setRegsFor(null)} />}
     </div>
+  );
+}
+
+function RegistrationsModal({ activity, onClose }: { activity: Activity; onClose: () => void }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["registrations", activity.id],
+    queryFn: async () => {
+      const { data: regs, error } = await supabase
+        .from("activity_registrations")
+        .select("id, student_id, registered_at")
+        .eq("activity_id", activity.id)
+        .order("registered_at", { ascending: true });
+      if (error) throw error;
+      const ids = Array.from(new Set((regs ?? []).map((r) => r.student_id)));
+      const names: Record<string, string> = {};
+      if (ids.length) {
+        const { data: ppl } = await supabase.rpc("get_public_names", { _ids: ids });
+        for (const p of ppl ?? []) names[p.id] = p.full_name;
+      }
+      // Mark who actually attended (has an attendance row for this activity)
+      const attended = new Set<string>();
+      if (ids.length) {
+        const { data: att } = await supabase
+          .from("attendance")
+          .select("student_id")
+          .eq("activity_id", activity.id)
+          .in("student_id", ids);
+        for (const a of att ?? []) attended.add(a.student_id);
+      }
+      return (regs ?? []).map((r) => ({
+        ...r,
+        full_name: names[r.student_id] ?? "Unknown",
+        attended: attended.has(r.student_id),
+      }));
+    },
+  });
+
+  function exportXlsx() {
+    if (!data) return;
+    const rows = data.map((r, i) => ({
+      "#": i + 1,
+      Name: r.full_name,
+      "Registered at": new Date(r.registered_at).toLocaleString(),
+      Attended: r.attended ? "Yes" : "No",
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Registrations");
+    XLSX.writeFile(wb, `${activity.name}-registrations.xlsx`);
+  }
+
+  return (
+    <Modal onClose={onClose}>
+      <h2 className="text-lg font-semibold mb-1">{activity.name}</h2>
+      <p className="text-xs text-muted-foreground mb-4">
+        Students registered for this activity. "Attended" turns on when they scan the QR.
+      </p>
+      {isLoading || !data ? (
+        <Loader />
+      ) : data.length === 0 ? (
+        <div className="text-sm text-muted-foreground text-center py-8">
+          No registrations yet.
+        </div>
+      ) : (
+        <>
+          <div className="space-y-2 max-h-[55vh] overflow-y-auto">
+            {data.map((row) => (
+              <div
+                key={row.id}
+                className="flex items-center justify-between gap-3 glass rounded-xl px-3 py-2"
+              >
+                <div className="min-w-0">
+                  <div className="text-sm font-medium truncate">{row.full_name}</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    Registered {new Date(row.registered_at).toLocaleString()}
+                  </div>
+                </div>
+                <span
+                  className={`shrink-0 text-[10px] uppercase tracking-wide px-2 py-1 rounded-full ${
+                    row.attended
+                      ? "bg-primary/20 text-primary"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {row.attended ? "Attended" : "Pending"}
+                </span>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={exportXlsx}
+            className="w-full mt-4 bg-primary text-primary-foreground rounded-xl py-2.5 font-medium glow flex items-center justify-center gap-2"
+          >
+            <Download className="h-4 w-4" /> Download Excel
+          </button>
+        </>
+      )}
+    </Modal>
   );
 }
 

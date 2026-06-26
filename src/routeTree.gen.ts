@@ -20,6 +20,7 @@ import { Route as AppScanRouteImport } from './routes/app.scan'
 import { Route as AppProfileRouteImport } from './routes/app.profile'
 import { Route as AppLeaderboardRouteImport } from './routes/app.leaderboard'
 import { Route as AppHistoryRouteImport } from './routes/app.history'
+import { Route as AppCalendarRouteImport } from './routes/app.calendar'
 import { Route as AppAchievementsRouteImport } from './routes/app.achievements'
 import { Route as AdminStudentsRouteImport } from './routes/admin.students'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
@@ -82,6 +83,11 @@ const AppHistoryRoute = AppHistoryRouteImport.update({
   path: '/history',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCalendarRoute = AppCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAchievementsRoute = AppAchievementsRouteImport.update({
   id: '/achievements',
   path: '/achievements',
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/admin/reports': typeof AdminReportsRoute
   '/admin/students': typeof AdminStudentsRoute
   '/app/achievements': typeof AppAchievementsRoute
+  '/app/calendar': typeof AppCalendarRoute
   '/app/history': typeof AppHistoryRoute
   '/app/leaderboard': typeof AppLeaderboardRoute
   '/app/profile': typeof AppProfileRoute
@@ -141,6 +148,7 @@ export interface FileRoutesByTo {
   '/admin/reports': typeof AdminReportsRoute
   '/admin/students': typeof AdminStudentsRoute
   '/app/achievements': typeof AppAchievementsRoute
+  '/app/calendar': typeof AppCalendarRoute
   '/app/history': typeof AppHistoryRoute
   '/app/leaderboard': typeof AppLeaderboardRoute
   '/app/profile': typeof AppProfileRoute
@@ -161,6 +169,7 @@ export interface FileRoutesById {
   '/admin/reports': typeof AdminReportsRoute
   '/admin/students': typeof AdminStudentsRoute
   '/app/achievements': typeof AppAchievementsRoute
+  '/app/calendar': typeof AppCalendarRoute
   '/app/history': typeof AppHistoryRoute
   '/app/leaderboard': typeof AppLeaderboardRoute
   '/app/profile': typeof AppProfileRoute
@@ -182,6 +191,7 @@ export interface FileRouteTypes {
     | '/admin/reports'
     | '/admin/students'
     | '/app/achievements'
+    | '/app/calendar'
     | '/app/history'
     | '/app/leaderboard'
     | '/app/profile'
@@ -199,6 +209,7 @@ export interface FileRouteTypes {
     | '/admin/reports'
     | '/admin/students'
     | '/app/achievements'
+    | '/app/calendar'
     | '/app/history'
     | '/app/leaderboard'
     | '/app/profile'
@@ -218,6 +229,7 @@ export interface FileRouteTypes {
     | '/admin/reports'
     | '/admin/students'
     | '/app/achievements'
+    | '/app/calendar'
     | '/app/history'
     | '/app/leaderboard'
     | '/app/profile'
@@ -315,6 +327,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppHistoryRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/calendar': {
+      id: '/app/calendar'
+      path: '/calendar'
+      fullPath: '/app/calendar'
+      preLoaderRoute: typeof AppCalendarRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/achievements': {
       id: '/app/achievements'
       path: '/achievements'
@@ -380,6 +399,7 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface AppRouteChildren {
   AppAchievementsRoute: typeof AppAchievementsRoute
+  AppCalendarRoute: typeof AppCalendarRoute
   AppHistoryRoute: typeof AppHistoryRoute
   AppLeaderboardRoute: typeof AppLeaderboardRoute
   AppProfileRoute: typeof AppProfileRoute
@@ -389,6 +409,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAchievementsRoute: AppAchievementsRoute,
+  AppCalendarRoute: AppCalendarRoute,
   AppHistoryRoute: AppHistoryRoute,
   AppLeaderboardRoute: AppLeaderboardRoute,
   AppProfileRoute: AppProfileRoute,
